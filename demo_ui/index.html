@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Subhanu Technologies LMS AI - Stage 2 Demo</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --border: #334155;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --badge-flagged: #dc2626;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: var(--bg); color: var(--text); padding: 24px; min-height: 100vh; }
+    .container { max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px; }
+    
+    /* Header & Role Bar */
+    header { display: flex; justify-content: space-between; align-items: center; background: var(--card-bg); padding: 16px 24px; border-radius: 8px; border: 1px solid var(--border); }
+    .logo-title h1 { font-size: 1.25rem; font-weight: 700; color: #fff; }
+    .logo-title p { font-size: 0.85rem; color: var(--text-muted); }
+    .role-bar { display: flex; align-items: center; gap: 12px; }
+    .role-badge { padding: 4px 10px; border-radius: 4px; font-weight: 600; font-size: 0.85rem; text-transform: uppercase; }
+    .role-badge.student { background: #0369a1; }
+    .role-badge.trainer { background: #b45309; }
+    .role-badge.admin { background: #7e22ce; }
+    select, button, input, textarea {
+      background: #0f172a; color: var(--text); border: 1px solid var(--border); padding: 8px 12px; border-radius: 6px; font-size: 0.9rem;
+    }
+    button { background: var(--primary); color: white; cursor: pointer; border: none; font-weight: 600; transition: background 0.2s; }
+    button:hover { background: var(--primary-hover); }
+    button.success-btn { background: var(--success); }
+    button.danger-btn { background: var(--danger); }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* Layout Grid */
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+    
+    .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+    .card h2 { font-size: 1.1rem; border-bottom: 1px solid var(--border); padding-bottom: 8px; color: #38bdf8; display: flex; justify-content: space-between; align-items: center; }
+    
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group label { font-size: 0.85rem; color: var(--text-muted); font-weight: 500; }
+    textarea { resize: vertical; min-height: 80px; }
+
+    /* Results and Lists */
+    .result-box { background: #090d16; border: 1px solid var(--border); padding: 12px; border-radius: 6px; font-size: 0.88rem; max-height: 380px; overflow-y: auto; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; }
+    .badge-pending { background: #b45309; color: #fff; }
+    .badge-approved { background: #15803d; color: #fff; }
+    .badge-rejected { background: #b91c1c; color: #fff; }
+    .badge-flagged { background: var(--badge-flagged); color: #fff; }
+    .badge-high { background: #c2410c; color: #fff; }
+    .badge-medium { background: #a16207; color: #fff; }
+    .badge-low { background: #15803d; color: #fff; }
+
+    .eval-item, .audit-item, .risk-item { border-bottom: 1px solid var(--border); padding: 12px 0; display: flex; flex-direction: column; gap: 6px; }
+    .eval-item:last-child, .audit-item:last-child, .risk-item:last-child { border-bottom: none; }
+    
+    .alert-box { padding: 10px 14px; border-radius: 6px; font-size: 0.85rem; }
+    .alert-warning { background: #451a03; border: 1px solid #78350f; color: #fed7aa; }
+    .alert-info { background: #082f49; border: 1px solid #075985; color: #bae6fd; }
+
+    .flashcard { background: #1e293b; border: 1px solid #334155; padding: 8px 12px; border-radius: 4px; margin-top: 6px; }
+    .flashcard strong { color: #38bdf8; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="logo-title">
+        <h1>Subhanu LMS AI Prototype</h1>
+        <p>Stage 2 Detachable Demo UI &bull; Role-Aware Backend Interface</p>
+      </div>
+      <div class="role-bar">
+        <label for="roleSelect" style="font-size: 0.85rem; color: var(--text-muted);">Active Role:</label>
+        <select id="roleSelect" onchange="switchRole()">
+          <option value="STUDENT">Student (ID: 3 - Flagged)</option>
+          <option value="TRAINER" selected>Trainer (ID: 2)</option>
+          <option value="ADMIN">Admin (ID: 1)</option>
+        </select>
+        <span id="roleBadge" class="role-badge trainer">TRAINER</span>
+      </div>
+    </header>
+
+    <div id="roleWarningBanner" class="alert-box alert-info">
+      <strong>Active Mode:</strong> <span id="roleInfoText">Trainer role active. Full access to rubric evaluation, approvals, risk flags, and parent audit logs.</span>
+    </div>
+
+    <div class="grid">
+      <!-- Card 1: Study Pack Generator (Student + Trainer + Admin) -->
+      <div class="card">
+        <h2>1. Grounded Study Pack Generator <span class="badge" style="background:#0284c7;">All Roles</span></h2>
+        <div class="form-group">
+          <label>Topic / Title</label>
+          <input type="text" id="spTitle" value="Introduction to ACID Properties in Databases" />
+        </div>
+        <div class="form-group">
+          <label>Source Text (AI strictly grounded here; gaps recorded under missing_info_notes)</label>
+          <textarea id="spSource" rows="4">ACID stands for Atomicity, Consistency, Isolation, and Durability. Atomicity ensures all operations in a transaction succeed or all roll back. Durability guarantees that once committed, data survives system crashes via write-ahead logging. Isolation levels prevent concurrency anomalies.</textarea>
+        </div>
+        <button id="btnGenStudyPack" onclick="generateStudyPack()">Generate Study Pack</button>
+        <div id="spResult" class="result-box">Study pack output will render here...</div>
+      </div>
+
+      <!-- Card 2: Rubric Evaluator & Approval (Trainer / Admin only) -->
+      <div class="card" id="cardEvaluator">
+        <h2>2. Descriptive Answer Evaluator <span class="badge" style="background:#b45309;">Trainer / Admin</span></h2>
+        <div class="form-group">
+          <label>Student ID to Evaluate</label>
+          <input type="number" id="evalStudentId" value="3" />
+        </div>
+        <div class="form-group">
+          <label>Question Topic</label>
+          <input type="text" id="evalTopic" value="Database Transaction Isolation" />
+        </div>
+        <div class="form-group">
+          <label>Evaluation Rubric</label>
+          <textarea id="evalRubric" rows="2">Must explain dirty reads, non-repeatable reads, phantom reads, and compare Read Committed with Serializable isolation.</textarea>
+        </div>
+        <div class="form-group">
+          <label>Student Descriptive Answer</label>
+          <textarea id="evalAnswer" rows="3">Isolation makes sure transactions don't interfere. Read committed only reads saved data so there is no dirty read. But it does not prevent phantom rows from appearing if another transaction inserts data.</textarea>
+        </div>
+        <button id="btnRunEval" onclick="runEvaluation()">Run AI Evaluation (Forces PENDING_APPROVAL)</button>
+        <div id="evalResult" class="result-box">Evaluation result will render here...</div>
+      </div>
+
+      <!-- Card 3: Evaluations List & Grade Approval Workflow -->
+      <div class="card">
+        <h2>3. Evaluations & Grade Approval Review <button onclick="loadEvaluations()" style="padding: 2px 8px; font-size: 0.75rem;">Refresh</button></h2>
+        <div id="evalListNotice" style="font-size: 0.8rem; color: var(--text-muted);">
+          Note: Students only see APPROVED evaluations. Unapproved grades remain hidden from students.
+        </div>
+        <div id="evalList" class="result-box">Loading evaluations...</div>
+      </div>
+
+      <!-- Card 4: Academic Risk & Parent Audit Logs (Trainer / Admin) -->
+      <div class="card" id="cardGovernance">
+        <h2>4. Academic Risk & Parent Audit Logs <button onclick="loadGovernanceData()" style="padding: 2px 8px; font-size: 0.75rem;">Refresh</button></h2>
+        <div style="font-weight: 600; font-size: 0.9rem; color: #f87171;">Student Risk Levels:</div>
+        <div id="riskList" class="result-box" style="max-height: 150px;">Loading risk flags...</div>
+
+        <div style="font-weight: 600; font-size: 0.9rem; color: #fbbf24; margin-top: 8px;">Parent Audit Log Entries:</div>
+        <div id="auditList" class="result-box" style="max-height: 150px;">Loading audit logs...</div>
+
+        <div class="form-group" style="margin-top: 8px;">
+          <label>Log Parent Notification / Intervention</label>
+          <div style="display:flex; gap:8px;">
+            <input type="text" id="auditAction" placeholder="e.g. PARENT_PHONE_CALL_COMPLETED" style="flex:1;" />
+            <button onclick="submitAuditLog()" style="white-space:nowrap;">Log Action</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = "http://127.0.0.1:8000";
+
+    function getHeaders() {
+      const role = document.getElementById("roleSelect").value;
+      return {
+        "Content-Type": "application/json",
+        "X-Role": role
+      };
+    }
+
+    function switchRole() {
+      const role = document.getElementById("roleSelect").value;
+      const badge = document.getElementById("roleBadge");
+      const banner = document.getElementById("roleInfoText");
+      badge.textContent = role;
+      badge.className = "role-badge " + role.toLowerCase();
+
+      const cardEvaluator = document.getElementById("cardEvaluator");
+      const cardGovernance = document.getElementById("cardGovernance");
+
+      if (role === "STUDENT") {
+        banner.innerHTML = "<strong>Student Mode:</strong> You can generate study packs and view your own <em>APPROVED</em> grades. Unapproved grades, risk flags, and parent audit logs are restricted.";
+        cardEvaluator.style.opacity = "0.4";
+        cardEvaluator.querySelectorAll("button, input, textarea").forEach(el => el.disabled = true);
+        cardGovernance.style.opacity = "0.4";
+        cardGovernance.querySelectorAll("button, input, textarea").forEach(el => el.disabled = true);
+      } else {
+        banner.innerHTML = `<strong>${role} Mode:</strong> Full permissions active. Able to evaluate, approve/reject grades, inspect flagged students, and record parent audit logs.`;
+        cardEvaluator.style.opacity = "1";
+        cardEvaluator.querySelectorAll("button, input, textarea").forEach(el => el.disabled = false);
+        cardGovernance.style.opacity = "1";
+        cardGovernance.querySelectorAll("button, input, textarea").forEach(el => el.disabled = false);
+      }
+
+      loadEvaluations();
+      if (role !== "STUDENT") {
+        loadGovernanceData();
+      } else {
+        document.getElementById("riskList").innerHTML = "<em>Restricted: Students cannot view risk flags.</em>";
+        document.getElementById("auditList").innerHTML = "<em>Restricted: Students cannot view parent audit records.</em>";
+      }
+    }
+
+    async function generateStudyPack() {
+      const title = document.getElementById("spTitle").value;
+      const source_text = document.getElementById("spSource").value;
+      const resBox = document.getElementById("spResult");
+      const btn = document.getElementById("btnGenStudyPack");
+
+      resBox.innerHTML = "<em>Generating study pack using Gemini 2.5 Flash...</em>";
+      btn.disabled = true;
+
+      try {
+        const resp = await fetch(`${API_BASE}/study-packs`, {
+          method: "POST",
+          headers: getHeaders(),
+          body: JSON.stringify({ title, source_text, student_id: 3 })
+        });
+        const data = await resp.json();
+        if (!resp.ok) throw new Error(data.detail || "Request failed");
+
+        let html = `<strong>Summary:</strong><p style="margin:4px 0 10px 0;">${data.summary}</p>`;
+        if (data.missing_info_notes) {
+          html += `<div class="alert-box alert-warning" style="margin-bottom:10px;"><strong>Missing Info / Grounding Notes:</strong><br>${data.missing_info_notes}</div>`;
+        }
+        if (data.key_terms && data.key_terms.length) {
+          html += `<strong>Key Terms:</strong><ul style="margin: 6px 0 12px 18px;">`;
+          data.key_terms.forEach(t => html += `<li><strong>${t.term}:</strong> ${t.definition}</li>`);
+          html += `</ul>`;
+        }
+        if (data.flashcards && data.flashcards.length) {
+          html += `<strong>Flashcards:</strong>`;
+          data.flashcards.forEach(fc => {
+            html += `<div class="flashcard"><strong>Q:</strong> ${fc.question}<br><strong>A:</strong> ${fc.answer}</div>`;
+          });
+        }
+        resBox.innerHTML = html;
+      } catch (err) {
+        resBox.innerHTML = `<span style="color:#ef4444;">Error: ${err.message}</span>`;
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    async function runEvaluation() {
+      const student_id = parseInt(document.getElementById("evalStudentId").value);
+      const topic = document.getElementById("evalTopic").value;
+      const rubric = document.getElementById("evalRubric").value;
+      const answer_text = document.getElementById("evalAnswer").value;
+      const resBox = document.getElementById("evalResult");
+      const btn = document.getElementById("btnRunEval");
+
+      resBox.innerHTML = "<em>Evaluating descriptive answer with Gemini 2.5 Flash...</em>";
+      btn.disabled = true;
+
+      try {
+        const resp = await fetch(`${API_BASE}/evaluations`, {
+          method: "POST",
+          headers: getHeaders(),
+          body: JSON.stringify({ student_id, topic, rubric, answer_text, trainer_id: 2 })
+        });
+        const data = await resp.json();
+        if (!resp.ok) throw new Error(data.detail || "Request failed");
+
+        resBox.innerHTML = `
+          <div><strong>Status:</strong> <span class="badge badge-pending">${data.status}</span> (Human-in-the-loop: Awaiting Trainer Approval)</div>
+          <div style="margin-top:6px;"><strong>AI Suggested Score:</strong> ${data.ai_score}%</div>
+          <div style="margin-top:6px;"><strong>Feedback:</strong> ${data.feedback}</div>
+          <div style="margin-top:6px;"><strong>Missing Concepts:</strong> ${JSON.stringify(data.missing_concepts)}</div>
+        `;
+        loadEvaluations();
+        loadGovernanceData();
+      } catch (err) {
+        resBox.innerHTML = `<span style="color:#ef4444;">Error: ${err.message}</span>`;
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    async function loadEvaluations() {
+      const el = document.getElementById("evalList");
+      const role = document.getElementById("roleSelect").value;
+      const url = role === "STUDENT" ? `${API_BASE}/evaluations?student_id=3` : `${API_BASE}/evaluations`;
+
+      try {
+        const resp = await fetch(url, { headers: getHeaders() });
+        const data = await resp.json();
+        if (!resp.ok) throw new Error(data.detail || "Failed to load");
+
+        if (data.length === 0) {
+          el.innerHTML = "<em>No evaluations found for current view.</em>";
+          return;
+        }
+
+        let html = "";
+        data.forEach(ev => {
+          const score = ev.final_score !== null && ev.final_score !== undefined ? ev.final_score : ev.ai_score;
+          const statusClass = ev.status === "APPROVED" ? "badge-approved" : (ev.status === "REJECTED" ? "badge-rejected" : "badge-pending");
+
+          html += `
+            <div class="eval-item">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <strong>${ev.topic} (Student #${ev.student_id})</strong>
+                <span class="badge ${statusClass}">${ev.status}</span>
+              </div>
+              <div>Score: <strong>${score}%</strong> | Feedback: ${ev.feedback}</div>
+              ${ev.trainer_comments ? `<div style="color:#38bdf8; font-size:0.8rem;">Trainer Note: ${ev.trainer_comments}</div>` : ""}
+          `;
+
+          if (role !== "STUDENT" && ev.status === "PENDING_APPROVAL") {
+            html += `
+              <div style="margin-top:8px; display:flex; gap:8px;">
+                <input type="number" id="score_${ev.id}" value="${score}" placeholder="Final Score" style="width:100px;" />
+                <input type="text" id="comm_${ev.id}" placeholder="Trainer comment" style="flex:1;" />
+                <button class="success-btn" onclick="reviewEvaluation(${ev.id}, 'APPROVED')">Approve</button>
+                <button class="danger-btn" onclick="reviewEvaluation(${ev.id}, 'REJECTED')">Reject</button>
+              </div>
+            `;
+          }
+          html += `</div>`;
+        });
+        el.innerHTML = html;
+      } catch (err) {
+        el.innerHTML = `<span style="color:#ef4444;">Error: ${err.message}</span>`;
+      }
+    }
+
+    async function reviewEvaluation(evalId, newStatus) {
+      const scoreVal = parseFloat(document.getElementById(`score_${evalId}`).value);
+      const comments = document.getElementById(`comm_${evalId}`).value;
+
+      try {
+        const resp = await fetch(`${API_BASE}/evaluations/${evalId}/review`, {
+          method: "PATCH",
+          headers: getHeaders(),
+          body: JSON.stringify({
+            status: newStatus,
+            final_score: isNaN(scoreVal) ? null : scoreVal,
+            trainer_comments: comments
+          })
+        });
+        const data = await resp.json();
+        if (!resp.ok) throw new Error(data.detail || "Review action failed");
+        loadEvaluations();
+        loadGovernanceData();
+      } catch (err) {
+        alert("Failed to review: " + err.message);
+      }
+    }
+
+    async function loadGovernanceData() {
+      const role = document.getElementById("roleSelect").value;
+      if (role === "STUDENT") return;
+
+      // Risk Flags
+      const riskEl = document.getElementById("riskList");
+      try {
+        const resp = await fetch(`${API_BASE}/risk-flags`, { headers: getHeaders() });
+        const data = await resp.json();
+        if (!resp.ok) throw new Error(data.detail || "Failed to load risk");
+        if (data.length === 0) {
+          riskEl.innerHTML = "<em>No risk calculations recorded yet.</em>";
+        } else {
+          let html = "";
+          data.forEach(r => {
+            const badgeClass = `badge-${r.risk_level.toLowerCase()}`;
+            html += `
+              <div class="risk-item">
+                <div style="display:flex; justify-content:space-between;">
+                  <strong>${r.student_name} (ID: ${r.student_id})</strong>
+                  <span class="badge ${badgeClass}">${r.risk_level}</span>
+                </div>
+                <div style="font-size:0.8rem; color:var(--text-muted);">${r.reason}</div>
+              </div>
+            `;
+          });
+          riskEl.innerHTML = html;
+        }
+      } catch (err) {
+        riskEl.innerHTML = `<span style="color:#ef4444;">Error: ${err.message}</span>`;
+      }
+
+      // Parent Audit Logs
+      const auditEl = document.getElementById("auditList");
+      try {
+        const resp = await fetch(`${API_BASE}/parent-audit-logs`, { headers: getHeaders() });
+        const data = await resp.json();
+        if (!resp.ok) throw new Error(data.detail || "Failed to load audit logs");
+        if (data.length === 0) {
+          auditEl.innerHTML = "<em>No parent audit records logged.</em>";
+        } else {
+          let html = "";
+          data.forEach(a => {
+            html += `
+              <div class="audit-item">
+                <div><strong>${a.action}</strong> &bull; Student: ${a.student_name} (#${a.student_id})</div>
+                <div style="font-size:0.75rem; color:var(--text-muted);">${new Date(a.logged_at).toLocaleString()} | Metadata: ${JSON.stringify(a.metadata)}</div>
+              </div>
+            `;
+          });
+          auditEl.innerHTML = html;
+        }
+      } catch (err) {
+        auditEl.innerHTML = `<span style="color:#ef4444;">Error: ${err.message}</span>`;
+      }
+    }
+
+    async function submitAuditLog() {
+      const actionInput = document.getElementById("auditAction");
+      const action = actionInput.value.trim();
+      if (!action) return;
+
+      try {
+        const resp = await fetch(`${API_BASE}/parent-audit-logs`, {
+          method: "POST",
+          headers: getHeaders(),
+          body: JSON.stringify({
+            student_id: 3,
+            action: action,
+            metadata: { source: "demo_ui_trainer_portal", logged_by: "Trainer #2" }
+          })
+        });
+        const data = await resp.json();
+        if (!resp.ok) throw new Error(data.detail || "Failed to log action");
+        actionInput.value = "";
+        loadGovernanceData();
+      } catch (err) {
+        alert("Failed to submit audit log: " + err.message);
+      }
+    }
+
+    // Initialize on page load
+    window.addEventListener("DOMContentLoaded", () => {
+      switchRole();
+    });
+  </script>
+</body>
+</html>
